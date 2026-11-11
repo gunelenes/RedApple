@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+
+<div class="login-wrap">
+  <form method="post" action="/giris" class="card login-card">
+    <img src="/favicon.svg" alt="" width="48" height="48" class="login-logo">
+    <h1>Admin girişi</h1>
+    <p class="muted small">Düzenleme yapmak için giriş yap.</p>
+    <label class="field">
+      <span class="label">Kullanıcı adı</span>
+      <input type="text" name="username" required autocomplete="username" autofocus>
+    </label>
+    <label class="field">
+      <span class="label">Şifre</span>
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Giriş yap</button>
+  </form>
+</div>
+
+<%- include('partials/footer') %>

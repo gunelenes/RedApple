@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · RedApple</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/style.css?v=<%= assetVersion %>">
+  <script src="/app.js?v=<%= assetVersion %>" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <img src="/favicon.svg" alt="" width="30" height="30">
+        <span>RedApple</span>
+      </a>
+      <nav class="main-nav" aria-label="Ana menü">
+        <a href="/" class="<%= locals.active === 'duyurular' ? 'active' : '' %>">Duyurular</a>
+        <a href="/uyeler" class="<%= locals.active === 'uyeler' ? 'active' : '' %>">Üyeler</a>
+      </nav>
+      <div class="auth">
+        <% if (isAdmin) { %>
+          <span class="admin-pill">Admin</span>
+          <form method="post" action="/cikis"><button class="btn btn-ghost btn-sm" type="submit">Çıkış</button></form>
+        <% } else { %>
+          <a href="/giris" class="btn btn-ghost btn-sm">Giriş</a>
+        <% } %>
+      </div>
+    </div>
+  </header>
+  <main class="wrap main">
+    <% if (flash) { %>
+      <div class="flash flash-<%= flash.type %>" role="status"><%= flash.text %></div>
+    <% } %>

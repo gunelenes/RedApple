@@ -1,0 +1,79 @@
+<%- include('partials/header') %>
+
+<section class="page-head">
+  <div>
+    <h1>Duyurular</h1>
+    <p class="muted">Toplantılar, etkinlikler ve droplar.</p>
+  </div>
+</section>
+
+<% if (isAdmin) { %>
+  <details class="card composer" <%= announcements.length === 0 && !filter ? 'open' : '' %>>
+    <summary><span class="plus">+</span> Yeni duyuru paylaş</summary>
+    <%- include('partials/announcement-form', { action: '/duyurular', submitLabel: 'Paylaş', members }) %>
+  </details>
+<% } %>
+
+<nav class="tabs" aria-label="Duyuru türü">
+  <a href="/" class="<%= !filter ? 'active' : '' %>">Tümü <span class="count"><%= counts.all %></span></a>
+  <% for (const [key, t] of Object.entries(TYPES)) { %>
+    <a href="/?tur=<%= key %>" class="<%= filter === key ? 'active' : '' %>"><%= t.label %> <span class="count"><%= counts[key] || 0 %></span></a>
+  <% } %>
+</nav>
+
+<% if (announcements.length === 0) { %>
+  <div class="empty">
+    <p>Henüz duyuru yok.</p>
+    <% if (!isAdmin) { %><p class="muted small">Yeni duyurular burada görünecek.</p><% } %>
+  </div>
+<% } %>
+
+<div class="ann-list">
+  <% for (const a of announcements) { %>
+    <article class="card ann type-<%= a.type %>">
+      <header class="ann-head">
+        <span class="badge badge-<%= a.type %>"><%= TYPES[a.type] ? TYPES[a.type].label : a.type %></span>
+        <time class="muted small"><%= fmt.created(a.created_at) %></time>
+      </header>
+      <h2 class="ann-title"><%= a.title %></h2>
+
+      <% if (a.event_at) { %>
+        <div class="event-when <%= fmt.isUpcoming(a.event_at) ? 'upcoming' : 'past' %>">
+          <span class="when-label"><%= fmt.isUpcoming(a.event_at) ? 'Yaklaşan' : 'Geçti' %></span>
+          <span><%= fmt.event(a.event_at) %></span>
+        </div>
+      <% } %>
+
+      <% if (a.type === 'drop') { %>
+        <% if (a.drop_item) { %>
+          <div class="drop-item"><span class="muted small">Item</span><strong><%= a.drop_item %></strong></div>
+        <% } %>
+        <div class="drop-attendees">
+          <span class="muted small">Orada olanlar (<%= a.attendees.length %>)</span>
+          <% if (a.attendees.length) { %>
+            <ul class="chips">
+              <% for (const m of a.attendees) { %>
+                <li class="chip <%= m.member_id ? '' : 'chip-left' %>"><span class="job-dot <%= fmt.jobClass(m.job) %>"></span><%= m.name %></li>
+              <% } %>
+            </ul>
+          <% } else { %>
+            <p class="muted small">İşaretlenmiş üye yok.</p>
+          <% } %>
+        </div>
+      <% } %>
+
+      <% if (a.content) { %><p class="ann-content"><%= a.content %></p><% } %>
+
+      <% if (isAdmin) { %>
+        <footer class="ann-actions">
+          <a href="/duyurular/<%= a.id %>/duzenle" class="btn btn-ghost btn-sm">Düzenle</a>
+          <form method="post" action="/duyurular/<%= a.id %>/sil" data-confirm="Bu duyuru silinsin mi?">
+            <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+          </form>
+        </footer>
+      <% } %>
+    </article>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,63 @@
+<%- include('partials/header') %>
+
+<section class="page-head">
+  <div>
+    <h1>Clan Üyeleri</h1>
+    <p class="muted"><%= total %> üye</p>
+  </div>
+</section>
+
+<% if (isAdmin) { %>
+  <form method="post" action="/uyeler" class="card member-add">
+    <label class="field grow">
+      <span class="label">Üye adı</span>
+      <input type="text" name="name" maxlength="40" required placeholder="Oyundaki karakter adı" autocomplete="off">
+    </label>
+    <label class="field">
+      <span class="label">Job</span>
+      <select name="job" required>
+        <% for (const j of JOBS) { %><option value="<%= j %>"><%= j %></option><% } %>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary">Ekle</button>
+  </form>
+<% } %>
+
+<nav class="tabs" aria-label="Job filtresi">
+  <a href="/uyeler" class="<%= !filter ? 'active' : '' %>">Tümü <span class="count"><%= total %></span></a>
+  <% for (const j of JOBS) { %>
+    <a href="/uyeler?job=<%= j %>" class="<%= filter === j ? 'active' : '' %>"><span class="job-dot <%= fmt.jobClass(j) %>"></span><%= j %> <span class="count"><%= jobCounts[j] %></span></a>
+  <% } %>
+</nav>
+
+<% if (members.length === 0) { %>
+  <div class="empty"><p><%= filter ? 'Bu job için üye yok.' : 'Henüz üye eklenmedi.' %></p></div>
+<% } %>
+
+<ul class="member-grid">
+  <% for (const m of members) { %>
+    <li class="card member <%= fmt.jobClass(m.job) %>">
+      <div class="member-main">
+        <span class="member-name"><%= m.name %></span>
+        <span class="job-badge <%= fmt.jobClass(m.job) %>"><%= m.job %></span>
+      </div>
+      <% if (isAdmin) { %>
+        <details class="member-edit">
+          <summary>Düzenle</summary>
+          <form method="post" action="/uyeler/<%= m.id %>" class="member-edit-form">
+            <input type="text" name="name" maxlength="40" required value="<%= m.name %>" aria-label="Üye adı">
+            <select name="job" aria-label="Job">
+              <% for (const j of JOBS) { %><option value="<%= j %>" <%= m.job === j ? 'selected' : '' %>><%= j %></option><% } %>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
+          </form>
+          <form method="post" action="/uyeler/<%= m.id %>/sil" data-confirm="<%= m.name %> clandan silinsin mi?">
+            <button type="submit" class="btn btn-danger btn-sm">Üyeyi sil</button>
+          </form>
+        </details>
+      <% } %>
+    </li>
+  <% } %>
+</ul>
+
+<%- include('partials/footer') %>

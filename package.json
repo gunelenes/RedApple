@@ -1,0 +1,19 @@
+{
+  "name": "redapple",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RedApple clan sitesi - üyeler ve duyurular",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "cookie-session": "^2.1.1",
+    "ejs": "^3.1.10",
+    "express": "^4.22.3"
+  }
+}

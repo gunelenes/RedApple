@@ -1,0 +1,14 @@
+<%- include('partials/header') %>
+
+<section class="page-head">
+  <div>
+    <h1>Duyuruyu düzenle</h1>
+    <p class="muted"><a href="/">← Duyurulara dön</a></p>
+  </div>
+</section>
+
+<div class="card">
+  <%- include('partials/announcement-form', { action: '/duyurular/' + announcement.id, submitLabel: 'Kaydet', cancelHref: '/', announcement, members }) %>
+</div>
+
+<%- include('partials/footer') %>

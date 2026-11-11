@@ -1,0 +1,69 @@
+<%
+  const a = locals.announcement || { type: 'genel', title: '', content: '', event_at: '', drop_item: '', attendees: [] };
+  const selected = new Set((a.attendees || []).map(x => x.member_id).filter(Boolean));
+%>
+<form method="post" action="<%= action %>" class="ann-form" data-ann-form>
+  <fieldset class="field">
+    <legend class="label">Tür</legend>
+    <div class="segmented">
+      <% for (const [key, t] of Object.entries(TYPES)) { %>
+        <label class="seg type-<%= key %>">
+          <input type="radio" name="type" value="<%= key %>" <%= a.type === key ? 'checked' : '' %> required>
+          <span><%= t.label %></span>
+        </label>
+      <% } %>
+    </div>
+  </fieldset>
+
+  <label class="field">
+    <span class="label">Başlık</span>
+    <input type="text" name="title" maxlength="120" required value="<%= a.title %>" placeholder="Örn. Cuma akşamı clan toplantısı">
+  </label>
+
+  <label class="field" data-show-for="toplanti etkinlik">
+    <span class="label">Tarih ve saat</span>
+    <input type="datetime-local" name="event_at" value="<%= a.event_at || '' %>">
+  </label>
+
+  <div data-show-for="drop">
+    <label class="field">
+      <span class="label">Düşen item</span>
+      <input type="text" name="drop_item" maxlength="120" value="<%= a.drop_item || '' %>" placeholder="Örn. Krowaz Helmet">
+    </label>
+
+    <fieldset class="field attendees" data-attendees>
+      <legend class="label">Drop anında orada olanlar <span class="muted" data-attendee-count></span></legend>
+      <% if (members.length === 0) { %>
+        <p class="muted small">Henüz üye yok. Önce <a href="/uyeler">Üyeler</a> sayfasından ekle.</p>
+      <% } else { %>
+        <div class="attendee-tools">
+          <input type="search" placeholder="Üye ara…" data-attendee-search aria-label="Üye ara">
+          <button type="button" class="btn btn-ghost btn-sm" data-check-all>Tümünü seç</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-check-none>Temizle</button>
+        </div>
+        <div class="attendee-grid">
+          <% for (const m of members) { %>
+            <label class="attendee" data-name="<%= m.name.toLocaleLowerCase('tr') %>">
+              <input type="checkbox" name="members" value="<%= m.id %>" <%= selected.has(m.id) ? 'checked' : '' %>>
+              <span class="attendee-name"><%= m.name %></span>
+              <span class="job-dot <%= fmt.jobClass(m.job) %>" title="<%= m.job %>"></span>
+            </label>
+          <% } %>
+        </div>
+      <% } %>
+      <% const orphans = (a.attendees || []).filter(x => !x.member_id); if (orphans.length) { %>
+        <p class="muted small">Clandan ayrılmış olup bu kayıtta kalanlar: <%= orphans.map(o => o.name).join(', ') %></p>
+      <% } %>
+    </fieldset>
+  </div>
+
+  <label class="field">
+    <span class="label">Açıklama <span class="muted">(opsiyonel)</span></span>
+    <textarea name="content" rows="4" maxlength="5000" placeholder="Detaylar, yer, kurallar…"><%= a.content %></textarea>
+  </label>
+
+  <div class="form-actions">
+    <% if (locals.cancelHref) { %><a href="<%= cancelHref %>" class="btn btn-ghost">Vazgeç</a><% } %>
+    <button type="submit" class="btn btn-primary"><%= submitLabel %></button>
+  </div>
+</form>
