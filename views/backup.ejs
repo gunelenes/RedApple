@@ -1,0 +1,45 @@
+<%- include('partials/header') %>
+
+<section class="page-head">
+  <div>
+    <h1>Yedekleme</h1>
+    <p class="muted">Şu an veritabanında <%= stats.members %> üye ve <%= stats.announcements %> duyuru var.</p>
+  </div>
+</section>
+
+<div class="backup-grid">
+  <section class="card">
+    <h2 class="card-title">Yedek indir</h2>
+    <p class="muted small">Tüm üyeleri ve duyuruları tek bir <code>.db</code> dosyası olarak bilgisayarına indirir. Bunu düzenli olarak yapıp dosyayı güvenli bir yerde saklaman iyi olur.</p>
+    <a href="/yedek/indir" class="btn btn-primary">Yedeği indir</a>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Yedekten geri yükle</h2>
+    <p class="muted small"><strong class="warn">Dikkat:</strong> Mevcut tüm üyeler ve duyurular silinip seçtiğin yedekteki verilerle değiştirilir. Yüklemeden önce mevcut verinin bir kopyası otomatik olarak saklanır.</p>
+    <form method="post" action="/yedek/yukle" enctype="multipart/form-data" class="restore-form" data-restore-form>
+      <input type="file" name="file" accept=".db,application/octet-stream" required>
+      <button type="submit" class="btn btn-danger">Geri yükle</button>
+    </form>
+  </section>
+</div>
+
+<section class="card">
+  <h2 class="card-title">Otomatik kopyalar</h2>
+  <p class="muted small">Her geri yüklemeden önce alınan kopyalar. Son 5 tanesi saklanır. Yanlış bir yedek yüklediysen buradan önceki hâli indirip tekrar geri yükleyebilirsin.</p>
+  <% if (safetyBackups.length === 0) { %>
+    <p class="muted small">Henüz otomatik kopya yok.</p>
+  <% } else { %>
+    <ul class="backup-list">
+      <% for (const b of safetyBackups) { %>
+        <li>
+          <span><%= b.mtime.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'long', timeStyle: 'short' }) %></span>
+          <span class="muted small"><%= (b.size / 1024).toFixed(0) %> KB</span>
+          <a href="/yedek/onceki/<%= b.name %>" class="btn btn-ghost btn-sm">İndir</a>
+        </li>
+      <% } %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

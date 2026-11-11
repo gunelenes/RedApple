@@ -25,6 +25,7 @@
       </nav>
       <div class="auth">
         <% if (isAdmin) { %>
+          <a href="/yedek" class="btn btn-ghost btn-sm <%= locals.active === 'yedek' ? 'active' : '' %>">Yedek</a>
           <span class="admin-pill">Admin</span>
           <form method="post" action="/cikis"><button class="btn btn-ghost btn-sm" type="submit">Çıkış</button></form>
         <% } else { %>

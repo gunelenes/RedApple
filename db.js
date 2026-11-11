@@ -173,8 +173,114 @@ function deleteAnnouncement(id) {
   db.prepare('DELETE FROM announcements WHERE id = ?').run(id);
 }
 
+/* ---------- Yedekleme ---------- */
+
+const safetyDir = path.join(dataDir, 'backups');
+const SAFETY_KEEP = 5;
+const SAFETY_RE = /^onceki-[\d_-]+\.db$/;
+
+const sqlString = (s) => "'" + String(s).replace(/'/g, "''") + "'";
+
+function userError(message) {
+  const err = new Error(message);
+  err.userMessage = message;
+  return err;
+}
+
+// Veritabanının tutarlı bir kopyasını verilen dosyaya yazar
+function exportTo(file) {
+  db.exec(`VACUUM INTO ${sqlString(file)}`);
+}
+
+function stats() {
+  const n = (t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+  return { members: n('members'), announcements: n('announcements') };
+}
+
+// Geri yüklemeden önce mevcut verinin kopyası (son 5 tanesi saklanır)
+function createSafetyBackup(stamp) {
+  fs.mkdirSync(safetyDir, { recursive: true });
+  const file = path.join(safetyDir, `onceki-${stamp}.db`);
+  fs.rmSync(file, { force: true });
+  exportTo(file);
+  const old = listSafetyBackups().slice(SAFETY_KEEP);
+  for (const b of old) fs.rmSync(path.join(safetyDir, b.name), { force: true });
+}
+
+function listSafetyBackups() {
+  if (!fs.existsSync(safetyDir)) return [];
+  return fs
+    .readdirSync(safetyDir)
+    .filter((f) => SAFETY_RE.test(f))
+    .map((name) => {
+      const st = fs.statSync(path.join(safetyDir, name));
+      return { name, size: st.size, mtime: st.mtime };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+}
+
+function safetyBackupPath(name) {
+  if (!SAFETY_RE.test(name)) return null;
+  const file = path.join(safetyDir, name);
+  return fs.existsSync(file) ? file : null;
+}
+
+const REQUIRED_COLUMNS = {
+  members: ['id', 'name', 'job', 'created_at'],
+  announcements: ['id', 'type', 'title', 'content', 'event_at', 'drop_item', 'created_at'],
+  drop_attendees: ['announcement_id', 'member_id', 'member_name', 'member_job'],
+};
+
+function validateBackup(file) {
+  let src;
+  try {
+    src = new DatabaseSync(file, { readOnly: true });
+    const check = src.prepare('PRAGMA integrity_check').get();
+    if (Object.values(check)[0] !== 'ok') throw userError('Yedek dosyası bozuk.');
+    for (const [table, cols] of Object.entries(REQUIRED_COLUMNS)) {
+      const have = src.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+      if (!cols.every((c) => have.includes(c))) throw userError('Bu dosya bir RedApple yedeği değil.');
+    }
+  } catch (err) {
+    if (err.userMessage) throw err;
+    throw userError('Dosya geçerli bir veritabanı yedeği değil.');
+  } finally {
+    if (src && src.isOpen) src.close();
+  }
+}
+
+// Yedekteki tüm veriyi mevcut verinin yerine koyar
+function restoreFrom(file) {
+  validateBackup(file);
+  db.prepare('ATTACH DATABASE ? AS up').run(file);
+  try {
+    tx(() => {
+      db.exec(`
+        DELETE FROM drop_attendees;
+        DELETE FROM announcements;
+        DELETE FROM members;
+        INSERT INTO members (id, name, job, created_at)
+          SELECT id, name, job, created_at FROM up.members;
+        INSERT INTO announcements (id, type, title, content, event_at, drop_item, created_at)
+          SELECT id, type, title, content, event_at, drop_item, created_at FROM up.announcements;
+        INSERT INTO drop_attendees (announcement_id, member_id, member_name, member_job)
+          SELECT announcement_id, member_id, member_name, member_job FROM up.drop_attendees;
+      `);
+    });
+  } finally {
+    db.exec('DETACH DATABASE up');
+  }
+  return stats();
+}
+
 module.exports = {
   dbPath,
+  exportTo,
+  stats,
+  createSafetyBackup,
+  listSafetyBackups,
+  safetyBackupPath,
+  restoreFrom,
   listMembers,
   addMember,
   updateMember,

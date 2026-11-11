@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
@@ -349,6 +351,68 @@ app.post('/uyeler/:id/sil', requireAdmin, parseId, (req, res) => {
   setFlash(req, 'success', 'Üye silindi.');
   res.redirect(backTo(req, '/uyeler'));
 });
+
+/* ---------- Yedekleme ---------- */
+const backupStamp = () => nowLocalString().replace('T', '_').replace(':', '');
+
+app.get('/yedek', requireAdmin, (req, res) => {
+  res.render('backup', {
+    title: 'Yedek',
+    active: 'yedek',
+    stats: db.stats(),
+    safetyBackups: db.listSafetyBackups(),
+  });
+});
+
+app.get('/yedek/indir', requireAdmin, (req, res, next) => {
+  const tmp = path.join(os.tmpdir(), `redapple-${crypto.randomUUID()}.db`);
+  try {
+    db.exportTo(tmp);
+  } catch (err) {
+    return next(err);
+  }
+  res.download(tmp, `redapple-yedek-${backupStamp()}.db`, (err) => {
+    fs.rm(tmp, { force: true }, () => {});
+    if (err && !res.headersSent) next(err);
+  });
+});
+
+app.get('/yedek/onceki/:name', requireAdmin, (req, res) => {
+  const file = db.safetyBackupPath(req.params.name);
+  if (!file) return res.status(404).render('error', { title: 'Bulunamadı', active: '', message: 'Yedek bulunamadı.' });
+  res.download(file, `redapple-${req.params.name}`);
+});
+
+app.post(
+  '/yedek/yukle',
+  requireAdmin,
+  express.raw({ type: 'application/octet-stream', limit: '50mb' }),
+  (req, res) => {
+    const viaFetch = req.is('application/octet-stream');
+    const done = (ok) => (viaFetch ? res.status(ok ? 200 : 400).json({ ok }) : res.redirect('/yedek'));
+
+    const buf = req.body;
+    if (!Buffer.isBuffer(buf) || buf.length < 100 || buf.subarray(0, 16).toString('latin1') !== 'SQLite format 3\0') {
+      setFlash(req, 'error', 'Geçerli bir yedek dosyası (.db) seçmelisin.');
+      return done(false);
+    }
+
+    const tmp = path.join(os.tmpdir(), `redapple-upload-${crypto.randomUUID()}.db`);
+    try {
+      fs.writeFileSync(tmp, buf);
+      db.createSafetyBackup(backupStamp());
+      const s = db.restoreFrom(tmp);
+      setFlash(req, 'success', `Yedek geri yüklendi: ${s.members} üye, ${s.announcements} duyuru.`);
+      done(true);
+    } catch (err) {
+      if (!err.userMessage) console.error(err);
+      setFlash(req, 'error', err.userMessage || 'Yedek yüklenemedi. Dosya bozuk ya da uyumsuz.');
+      done(false);
+    } finally {
+      fs.rm(tmp, { force: true }, () => {});
+    }
+  }
+);
 
 /* ---------- 404 / Hata ---------- */
 app.use((req, res) => {

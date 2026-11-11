@@ -8,6 +8,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Yedekten geri yükleme: dosyayı ham olarak gönder
+  const restoreForm = document.querySelector('[data-restore-form]');
+  if (restoreForm) {
+    restoreForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = restoreForm.querySelector('input[type="file"]').files[0];
+      if (!file) return;
+      const msg = 'Mevcut TÜM üyeler ve duyurular silinip "' + file.name + '" içindeki verilerle değiştirilecek. Emin misin?';
+      if (!window.confirm(msg)) return;
+      const btn = restoreForm.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Yükleniyor…';
+      try {
+        await fetch(restoreForm.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: file,
+        });
+      } catch {}
+      window.location.href = '/yedek';
+    });
+  }
+
   // Duyuru formu: türe göre alanları göster/gizle
   document.querySelectorAll('[data-ann-form]').forEach((form) => {
     const sections = form.querySelectorAll('[data-show-for]');
