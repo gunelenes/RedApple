@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const express = require('express');
 const cookieSession = require('cookie-session');
 const db = require('./db');
+const { buildWorkbook } = require('./excel');
 const { JOBS, TYPES } = require('./constants');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -375,6 +376,18 @@ app.get('/yedek/indir', requireAdmin, (req, res, next) => {
     fs.rm(tmp, { force: true }, () => {});
     if (err && !res.headersSent) next(err);
   });
+});
+
+app.get('/yedek/excel', requireAdmin, async (req, res, next) => {
+  try {
+    const wb = await buildWorkbook(db.exportData());
+    const buffer = await wb.xlsx.writeBuffer();
+    res.attachment(`redapple-${backupStamp()}.xlsx`);
+    res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.get('/yedek/onceki/:name', requireAdmin, (req, res) => {

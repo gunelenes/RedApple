@@ -273,8 +273,18 @@ function restoreFrom(file) {
   return stats();
 }
 
+// Excel dışa aktarımı için ham veri
+function exportData() {
+  const members = db.prepare('SELECT id, name, job, created_at FROM members').all().sort(byJobThenName);
+  const announcements = attachAttendees(
+    db.prepare('SELECT * FROM announcements ORDER BY created_at DESC, id DESC').all()
+  );
+  return { members, announcements };
+}
+
 module.exports = {
   dbPath,
+  exportData,
   exportTo,
   stats,
   createSafetyBackup,
